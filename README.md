@@ -3,6 +3,14 @@
 This agent is meant to provide all the tools you may need for your day-to-day work
 
 
+## Installation
+
+- Download and install [uv](https://docs.astral.sh/uv/)
+- Synchronize your local virtual environment:
+```python
+uv sync
+```
+
 ## Structure
 
 - `sa_assistant` module: contains all the logic for the assistant

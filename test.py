@@ -2,8 +2,10 @@ from sa_assistant.agents.triage import triage_agent
 from sa_assistant.models import AssistantContext
 from agents import Runner
 import asyncio
+import yaml
 
-context = AssistantContext()
+config = yaml.load(open("config.yaml"), Loader=yaml.Loader)
+context = AssistantContext(**config)
 
 
 async def main():

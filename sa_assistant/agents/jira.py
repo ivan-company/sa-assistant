@@ -18,8 +18,9 @@ async def get_tickets(
     print("Getting tickets with query:", jql)
     try:
         jira = JIRA(
-            server=ctx.context.jira.jira_instance_url,
-            basic_auth=(os.getenv("JIRA_API_EMAIL"), ctx.context.jira.jira_api_key),
+            server=ctx.context.jira.base_url,
+            basic_auth=(ctx.context.jira.api_email,
+                        ctx.context.jira.api_key),
         )
     except Exception as e:
         print(e)
@@ -115,7 +116,3 @@ If the customer asks a question that is not related to tickets, transfer back to
 
 async def jira_handoff(ctx: RunContextWrapper[AssistantContext]):
     print("Handing off work to Jira agent")
-    ctx.context.jira = JiraContext(
-        jira_api_key=os.getenv("JIRA_API_KEY"),
-        jira_instance_url=os.getenv("JIRA_BASE_URL"),
-    )

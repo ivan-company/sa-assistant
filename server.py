@@ -2,6 +2,7 @@ from agents import Runner
 from mcp.server.fastmcp import FastMCP
 from sa_assistant.agents.triage import triage_agent
 from sa_assistant.models import AssistantContext
+import yaml
 
 # Create an MCP server
 mcp = FastMCP("Demo")
@@ -22,7 +23,9 @@ async def sa_assistant(request: str):
         request: The user request that we will need to handle.
     """
 
-    context = AssistantContext()
+    config = yaml.load(open("config.yaml"), Loader=yaml.Loader)
+
+    context = AssistantContext(**config)
 
     result = await Runner.run(triage_agent, request, context=context)
     return result.final_output

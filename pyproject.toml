@@ -10,4 +10,5 @@ dependencies = [
     "openai-agents>=0.0.15",
     "pydantic>=2.11.4",
     "python-lsp-server[all]>=1.12.2",
+    "pyyaml>=6.0.2",
 ]

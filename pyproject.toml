@@ -1,0 +1,13 @@
+[project]
+name = "sa-assistant"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "jira>=3.8.0",
+    "mcp[cli]>=1.9.0",
+    "openai-agents>=0.0.15",
+    "pydantic>=2.11.4",
+    "python-lsp-server[all]>=1.12.2",
+]

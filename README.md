@@ -23,7 +23,12 @@ uv run test.py
 
 - Open your Claude Desktop client
 - Go to Settings -> Developer -> Edit Config
-- Add the content of the file inside this project's `integrations/claude.json` in the Claude config file
+- Add the content of the file inside this project's `integrations/claude.json` in the config file
 - Restart the client
 
-# sa-assistant
+## Cursor integration
+
+- Open the MCP settings (cmd+shift+P and search for "MCP")
+- edit the configuration file
+- Add the content of the file inside this project's `integrations/claude.json` in the config file
+

@@ -1,0 +1,13 @@
+{
+    "mcpServers": {
+      "sa-assistant": {
+        "command": "/Users/<username>/.local/bin/uv",
+        "args": [
+            "--directory",
+          "/Users/<username>/projects/sa-assistant",
+          "run",
+          "server.py"
+        ]
+      }
+    }
+  }

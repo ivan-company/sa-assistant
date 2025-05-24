@@ -179,6 +179,51 @@ async def create_event(
         }
 
 
+@function_tool
+async def delete_event(
+    ctx: RunContextWrapper[AssistantContext],
+    event_id: str
+):
+    """Delete an event from the calendar.
+
+    Args:
+        event_id: The ID of the event to delete
+    """
+    calendar_id = 'primary'
+    service = CalendarService("calendar_secrets.json", SCOPES).get_service()
+
+    try:
+        # Get event details before deletion for confirmation
+        event = service.events().get(
+            calendarId=calendar_id,
+            eventId=event_id
+        ).execute()
+
+        event_summary = event.get('summary', 'No title')
+        event_start = event['start'].get(
+            'dateTime', event['start'].get('date'))
+
+        # Delete the event
+        service.events().delete(
+            calendarId=calendar_id,
+            eventId=event_id
+        ).execute()
+
+        return {
+            'id': event_id,
+            'summary': event_summary,
+            'start': event_start,
+            'status': 'deleted'
+        }
+
+    except Exception as e:
+        return {
+            'status': 'error',
+            'error': str(e),
+            'event_id': event_id
+        }
+
+
 def calendar_agent_instructions(ctx: RunContextWrapper[AssistantContext], agent: Agent[AssistantContext]):
     timezone = ctx.context.calendar.timezone
     return f"""{RECOMMENDED_PROMPT_PREFIX}
@@ -204,6 +249,10 @@ Time conversion examples:
 
 calendar_agent = Agent(
     name="Calendar agent",
-    instructions=calendar_agent_instructions,    tools=[
-        get_events, create_event]
+    instructions=calendar_agent_instructions,
+    tools=[
+        get_events,
+        create_event,
+        delete_event,
+    ]
 )

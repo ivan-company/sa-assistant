@@ -11,7 +11,7 @@ context = AssistantContext(**config)
 async def main():
     result = await Runner.run(
         triage_agent,
-        "Create an event for next Monday at 9am titled 'This is a test', that will last 30 minutes.",
+        "Clean my calendar agenda from 9am to 10am for next Monday",
         context=context,
     )
     print(result.final_output)

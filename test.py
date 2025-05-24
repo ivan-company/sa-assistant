@@ -11,7 +11,7 @@ context = AssistantContext(**config)
 async def main():
     result = await Runner.run(
         triage_agent,
-        "Clean my calendar agenda from 9am to 10am for next Monday",
+        "Send a Slack message saying 'Hello world from the SA assistant!",
         context=context,
     )
     print(result.final_output)

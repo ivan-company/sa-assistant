@@ -14,9 +14,14 @@ class CalendarContext(BaseModel):
     timezone: str
 
 
+class SlackContext(BaseModel):
+    api_token: str
+
+
 class AssistantContext(BaseModel):
     jira: JiraContext | None = None
     calendar: CalendarContext
+    slack: SlackContext
 
 
 class AssistantOutput(BaseModel):

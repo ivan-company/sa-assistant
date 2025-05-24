@@ -4,6 +4,7 @@ from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from ..models import AssistantContext, AssistantOutput
 from .jira import jira_agent, jira_handoff
 from .calendar import calendar_agent
+from .slack import slack_agent
 
 triage_agent = Agent[AssistantContext](
     name="Triage agent",
@@ -14,6 +15,7 @@ triage_agent = Agent[AssistantContext](
     handoffs=[
         handoff(agent=jira_agent, on_handoff=jira_handoff),
         calendar_agent,
+        slack_agent,
     ],
     output_type=AssistantOutput,
 )

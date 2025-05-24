@@ -127,8 +127,8 @@ async def create_event(
 
     Args:
         summary: The title/summary of the event
-        start_datetime: Start time in ISO format (YYYY-MM-DDTHH:MM:SS)
-        end_datetime: End time in ISO format (YYYY-MM-DDTHH:MM:SS)
+        start_datetime: Start time in ISO format (YYYY-MM-DDTHH:MM:SS) - assumed to be in Pacific Time
+        end_datetime: End time in ISO format (YYYY-MM-DDTHH:MM:SS) - assumed to be in Pacific Time
         description: Optional description of the event
         location: Optional location of the event
         attendees: Optional list of email addresses to invite
@@ -143,11 +143,11 @@ async def create_event(
         'location': location,
         'start': {
             'dateTime': start_datetime,
-            'timeZone': 'UTC',  # You might want to make this configurable
+            'timeZone': 'America/Vancouver',  # Pacific Time
         },
         'end': {
             'dateTime': end_datetime,
-            'timeZone': 'UTC',
+            'timeZone': 'America/Vancouver',  # Pacific Time
         },
     }
 
@@ -178,19 +178,32 @@ async def create_event(
             'error': str(e)
         }
 
-calendar_agent = Agent(
-    name="Calendar agent",
-    instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
+
+def calendar_agent_instructions(ctx: RunContextWrapper[AssistantContext], agent: Agent[AssistantContext]):
+    timezone = ctx.context.calendar.timezone
+    return f"""{RECOMMENDED_PROMPT_PREFIX}
 You are a Google Calendar agent. Your job is to handle all tasks related to Google Calendar. Some relevant information:
 
 - Today's date is {datetime.now().strftime("%Y-%m-%d")}.
+- My timezone is {timezone}
 - My working hours are from 8am to 4pm.
 - The "home" and "Lunch" events don't count as events. They are just placeholders.
 
 When creating events:
-- Always use ISO format for datetime (YYYY-MM-DDTHH:MM:SS)
-- If no timezone is specified, assume EST
+- Always use my timezone unless explicitly stated otherwise
+- Use ISO format for datetime (YYYY-MM-DDTHH:MM:SS) but assume Pacific Time
+- If no timezone is specified, assume Pacific Time
 - Default event duration is 1 hour if end time is not specified
-""",
-    tools=[get_events, create_event]
+- Always confirm event details before creating
+
+Time conversion examples:
+- "9am" means "2025-MM-DDTOG:00:00"
+- "2pm" means "2025-MM-DDT14:00:00"
+"""
+
+
+calendar_agent = Agent(
+    name="Calendar agent",
+    instructions=calendar_agent_instructions,    tools=[
+        get_events, create_event]
 )

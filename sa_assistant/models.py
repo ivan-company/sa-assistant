@@ -10,8 +10,13 @@ class JiraContext(BaseModel):
     team: List[str] = Field(description="List of your team members")
 
 
+class CalendarContext(BaseModel):
+    timezone: str
+
+
 class AssistantContext(BaseModel):
     jira: JiraContext | None = None
+    calendar: CalendarContext
 
 
 class AssistantOutput(BaseModel):

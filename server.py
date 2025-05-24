@@ -8,13 +8,6 @@ import yaml
 mcp = FastMCP("Demo")
 
 
-# Add an addition tool
-@mcp.tool()
-async def add(a: int, b: int) -> int:
-    """Add two numbers"""
-    return a + b
-
-
 @mcp.tool()
 async def sa_assistant(request: str):
     """StackAdapt AI assistant. It's in charge of solving all types of requests in regards of StackAdapt

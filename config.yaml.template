@@ -6,3 +6,7 @@ jira:
   team:
     - "John Doe"
     - "Jean Doe"
+calendar:
+    timezone: "America/Vancouver"
+slack:
+    api_token: "<token>"

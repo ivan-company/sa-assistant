@@ -1,6 +1,6 @@
-from sa_assistant.agents.triage import triage_agent
-from sa_assistant.models import AssistantContext
 from agents import Runner
+from sa_assistant.context import AssistantContext
+from sa_assistant.daily_check.agent import daily_checks_agent
 import asyncio
 import yaml
 
@@ -10,8 +10,8 @@ context = AssistantContext(**config)
 
 async def main():
     result = await Runner.run(
-        triage_agent,
-        "Send a Slack message saying 'Hello world from the SA assistant!",
+        daily_checks_agent,
+        "Perform my daily checks",
         context=context,
     )
     print(result.final_output)

@@ -5,6 +5,7 @@ description = "AI assistant for StackAdapt"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "aiohttp>=3.12.1",
     "google-api-python-client>=2.170.0",
     "google-auth>=2.40.2",
     "google-auth-httplib2>=0.2.0",
@@ -16,4 +17,5 @@ dependencies = [
     "python-lsp-server[all]>=1.12.2",
     "pyyaml>=6.0.2",
     "slack-sdk>=3.35.0",
+    "sqlmodel>=0.0.24",
 ]

@@ -34,3 +34,5 @@ class TicketInfo(BaseModel):
     status: str = Field(description="Current status of the ticket")
     assignee: str = Field(
         description="Name of the person assigned to the ticket")
+    story_points: float | None = Field(
+        default=None, description="Story points for the ticket")

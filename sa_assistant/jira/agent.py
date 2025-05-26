@@ -1,11 +1,9 @@
-import os
-
 from agents import Agent, function_tool, RunContextWrapper
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from jira import JIRA
 from dotenv import load_dotenv
 
-from ..models import AssistantContext, TicketInfo, JiraContext
+from ..context import AssistantContext, TicketInfo, JiraContext
 
 load_dotenv()
 
@@ -39,6 +37,7 @@ async def get_tickets(
                 if issue.fields.assignee
                 else "Unassigned"
             ),
+            story_points=getattr(issue.fields, "customfield_10708", None),
         )
         for issue in issues
     ]
@@ -78,6 +77,7 @@ Common operators:
 - ORDER BY : sort results
 
 - When the user asks for their team. They usually talk about Devon Mack, Cynthia Tsoi and Larry Liu
+- If not specified, you will retrieve the tickets for the current sprint.
 
 When you are asked about a specific user, you can translate it to their email address by using the following syntax:
 - "John Doe" -> "john.doe@stackadapt.com"

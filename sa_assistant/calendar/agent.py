@@ -9,7 +9,7 @@ from agents import Agent, function_tool, RunContextWrapper
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-from ..models import AssistantContext
+from ..context import AssistantContext
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 

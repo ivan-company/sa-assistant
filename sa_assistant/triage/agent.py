@@ -1,10 +1,15 @@
-from agents import Agent, handoff
+from agents import Agent, handoff, RunContextWrapper
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
-from ..models import AssistantContext, AssistantOutput
-from .jira import jira_agent, jira_handoff
-from .calendar import calendar_agent
-from .slack import slack_agent
+from ..context import AssistantContext, AssistantOutput
+from ..jira.agent import jira_agent, jira_handoff
+from ..calendar.agent import calendar_agent
+from ..slack.agent import slack_agent
+from ..daily_check.agent import daily_checks_agent
+
+
+async def daily_checks_agent_handoff(ctx: RunContextWrapper[AssistantContext]):
+    print("Handing off work to the daily checks agent")
 
 triage_agent = Agent[AssistantContext](
     name="Triage agent",
@@ -13,6 +18,7 @@ triage_agent = Agent[AssistantContext](
         "You are a helpful triaging agent. You can use your tools to delegate questions to other appropriate agents."
     ),
     handoffs=[
+        handoff(daily_checks_agent, on_handoff=daily_checks_agent_handoff),
         handoff(agent=jira_agent, on_handoff=jira_handoff),
         calendar_agent,
         slack_agent,

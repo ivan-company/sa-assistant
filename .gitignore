@@ -7,7 +7,7 @@ wheels/
 *.egg-info
 .env
 config.yaml
-calendar_credentials.json
+google_credentials.json
 calendar_secrets.json
 
 # Virtual environments

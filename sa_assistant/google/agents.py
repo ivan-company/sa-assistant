@@ -1,76 +1,14 @@
-import os
-import json
-from pathlib import Path
 from datetime import datetime, timedelta
 
-from googleapiclient.discovery import build
-from google.oauth2.credentials import Credentials
 from agents import Agent, function_tool, RunContextWrapper
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
-from google_auth_oauthlib.flow import InstalledAppFlow
 
 from ..context import AssistantContext
-
-SCOPES = ['https://www.googleapis.com/auth/calendar']
-
-
-class CalendarService:
-    def __init__(self, client_secrets_file, scopes):
-        self.client_secrets_file = client_secrets_file
-        self.credentials_file = Path("calendar_credentials.json")
-        self.scopes = scopes
-
-    def authenticate_once(self):
-        flow = InstalledAppFlow.from_client_secrets_file(
-            self.client_secrets_file, self.scopes)
-        credentials = flow.run_local_server(port=0)
-
-        self.save_credentials(credentials)
-
-    def save_credentials(self, credentials):
-        creds_data = {
-            'token': credentials.token,
-            'refresh_token': credentials.refresh_token,
-            'token_uri': credentials.token_uri,
-            'client_id': credentials.client_id,
-            'client_secret': credentials.client_secret,
-            'scopes': credentials.scopes
-        }
-
-        with open(self.credentials_file, 'w') as f:
-            json.dump(creds_data, f)
-        os.chmod(self.credentials_file, 0o600)
-
-    def load_credentials(self):
-        if not self.credentials_file.exists():
-            return None
-
-        with open(self.credentials_file, 'r') as f:
-            creds_data = json.load(f)
-
-        return Credentials(**creds_data)
-
-    def get_credentials(self):
-        credentials = self.load_credentials()
-
-        if not credentials:
-            credentials = self.authenticate_once()
-
-        if credentials.expired:
-            credentials.refresh()
-            self.save_credentials(credentials)
-
-        return credentials
-
-    def get_service(self):
-        credentials = self.get_credentials()
-        service = build('calendar', 'v3', credentials=credentials)
-
-        return service
+from .api import GoogleAPI
 
 
 @function_tool
-async def get_events(ctx: RunContextWrapper[AssistantContext], date_str: str):
+async def get_calendar_event(ctx: RunContextWrapper[AssistantContext], date_str: str):
     """Fetch the calendar information.
 
     Args:
@@ -82,7 +20,7 @@ async def get_events(ctx: RunContextWrapper[AssistantContext], date_str: str):
     calendar_id = 'primary'
     time_min = date.isoformat() + 'Z'
     time_max = (date + timedelta(days=days_ahead)).isoformat() + 'Z'
-    service = CalendarService("calendar_secrets.json", SCOPES).get_service()
+    service = GoogleAPI().get_calendar_service()
 
     events_result = service.events().list(
         calendarId=calendar_id,
@@ -114,7 +52,7 @@ async def get_events(ctx: RunContextWrapper[AssistantContext], date_str: str):
 
 
 @function_tool
-async def create_event(
+async def create_calendar_event(
     ctx: RunContextWrapper[AssistantContext],
     summary: str,
     start_datetime: str,
@@ -134,7 +72,7 @@ async def create_event(
         attendees: Optional list of email addresses to invite
     """
     calendar_id = 'primary'
-    service = CalendarService("calendar_secrets.json", SCOPES).get_service()
+    service = GoogleAPI().get_calendar_service()
 
     # Build the event object
     event = {
@@ -180,7 +118,7 @@ async def create_event(
 
 
 @function_tool
-async def delete_event(
+async def delete_calendar_event(
     ctx: RunContextWrapper[AssistantContext],
     event_id: str
 ):
@@ -190,7 +128,7 @@ async def delete_event(
         event_id: The ID of the event to delete
     """
     calendar_id = 'primary'
-    service = CalendarService("calendar_secrets.json", SCOPES).get_service()
+    service = GoogleAPI().get_calendar_service()
 
     try:
         # Get event details before deletion for confirmation
@@ -251,8 +189,8 @@ calendar_agent = Agent(
     name="Calendar agent",
     instructions=calendar_agent_instructions,
     tools=[
-        get_events,
-        create_event,
-        delete_event,
+        get_calendar_event,
+        create_calendar_event,
+        delete_calendar_event,
     ]
 )

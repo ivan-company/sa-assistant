@@ -1,6 +1,6 @@
 from agents import Runner
 from sa_assistant.context import AssistantContext
-from sa_assistant.daily_check.agent import daily_checks_agent
+import sa_assistant
 import asyncio
 import yaml
 
@@ -10,8 +10,8 @@ context = AssistantContext(**config)
 
 async def main():
     result = await Runner.run(
-        daily_checks_agent,
-        "Perform my daily checks",
+        sa_assistant.calendar_agent,
+        "Tell me tomorrow's agenda",
         context=context,
     )
     print(result.final_output)

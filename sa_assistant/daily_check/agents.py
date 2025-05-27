@@ -1,7 +1,7 @@
 from agents import Agent, RunContextWrapper, handoff
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from ..context import AssistantContext
-from ..jira.agent import get_tickets
+from ..jira.agents import get_tickets
 from .. import instructions
 
 

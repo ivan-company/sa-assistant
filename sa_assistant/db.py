@@ -1,6 +1,3 @@
-import importlib
-import traceback
-from pathlib import Path
 from sqlmodel import create_engine, SQLModel, Session
 
 _engine_instance = None
@@ -12,7 +9,7 @@ def get_engine(database_url: str = "sqlite:///app.db"):
     global _engine_instance, _models_imported
 
     if _engine_instance is None:
-        _engine_instance = create_engine(database_url, echo=True)
+        _engine_instance = create_engine(database_url, echo=False)
         SQLModel.metadata.create_all(_engine_instance)
 
     return _engine_instance

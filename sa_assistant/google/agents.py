@@ -4,7 +4,7 @@ from agents import Agent, function_tool, RunContextWrapper
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
 from ..context import AssistantContext
-from .api import GoogleAPI
+from .api import GoogleCalendarAPI
 
 
 @function_tool
@@ -20,35 +20,17 @@ async def get_calendar_event(ctx: RunContextWrapper[AssistantContext], date_str:
     calendar_id = 'primary'
     time_min = date.isoformat() + 'Z'
     time_max = (date + timedelta(days=days_ahead)).isoformat() + 'Z'
-    service = GoogleAPI().get_calendar_service()
-
-    events_result = service.events().list(
-        calendarId=calendar_id,
-        timeMin=time_min,
-        timeMax=time_max,
-        maxResults=max_results,
-        singleEvents=True,
-        orderBy='startTime'
-    ).execute()
-
-    events = events_result.get('items', [])
-
-    # Format events for better readability
-    formatted_events = []
-    for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        end = event['end'].get('dateTime', event['end'].get('date'))
-        formatted_event = {
-            'id': event.get('id'),
-            'summary': event.get('summary', 'No title'),
-            'start': start,
-            'end': end,
-            'description': event.get('description', ''),
-            'location': event.get('location', ''),
-            'attendees': [attendee.get('email') for attendee in event.get('attendees', [])]
-        }
-        formatted_events.append(formatted_event)
-    return formatted_events
+    try:
+        events = GoogleCalendarAPI().get_events(
+            calendar_id,
+            time_min=time_min,
+            time_max=time_max,
+            max_results=max_results,
+            order_by='startTime'
+        )
+    except Exception as e:
+        print(e)
+    return events
 
 
 @function_tool
@@ -72,7 +54,6 @@ async def create_calendar_event(
         attendees: Optional list of email addresses to invite
     """
     calendar_id = 'primary'
-    service = GoogleAPI().get_calendar_service()
 
     # Build the event object
     event = {
@@ -94,22 +75,7 @@ async def create_calendar_event(
         event['attendees'] = [{'email': email} for email in attendees]
 
     try:
-        # Create the event
-        created_event = service.events().insert(
-            calendarId=calendar_id,
-            body=event
-        ).execute()
-
-        # Return formatted response
-        return {
-            'id': created_event.get('id'),
-            'summary': created_event.get('summary'),
-            'start': created_event['start'].get('dateTime'),
-            'end': created_event['end'].get('dateTime'),
-            'html_link': created_event.get('htmlLink'),
-            'status': 'created'
-        }
-
+        return GoogleCalendarAPI().create_event(calendar_id, event)
     except Exception as e:
         return {
             'status': 'error',
@@ -127,33 +93,8 @@ async def delete_calendar_event(
     Args:
         event_id: The ID of the event to delete
     """
-    calendar_id = 'primary'
-    service = GoogleAPI().get_calendar_service()
-
     try:
-        # Get event details before deletion for confirmation
-        event = service.events().get(
-            calendarId=calendar_id,
-            eventId=event_id
-        ).execute()
-
-        event_summary = event.get('summary', 'No title')
-        event_start = event['start'].get(
-            'dateTime', event['start'].get('date'))
-
-        # Delete the event
-        service.events().delete(
-            calendarId=calendar_id,
-            eventId=event_id
-        ).execute()
-
-        return {
-            'id': event_id,
-            'summary': event_summary,
-            'start': event_start,
-            'status': 'deleted'
-        }
-
+        GoogleCalendarAPI().delete_event(event_id, 'primary')
     except Exception as e:
         return {
             'status': 'error',

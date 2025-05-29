@@ -1,5 +1,6 @@
-from .agents import calendar_agent
+from .agents import calendar_agent, drive_agent
 
 __all__ = [
-    'calendar_agent'
+    'calendar_agent',
+    'drive_agent'
 ]

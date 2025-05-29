@@ -1,6 +1,6 @@
 from agents import Runner
 from mcp.server.fastmcp import FastMCP
-from sa_assistant import calendar_agent, jira_agent, slack_agent
+from sa_assistant import calendar_agent, jira_agent, slack_agent, drive_agent
 from sa_assistant.context import AssistantContext
 import yaml
 
@@ -46,6 +46,17 @@ async def slack(request: str):
         request: The user request that we will need to handle.
     """
     result = await run_agent(slack_agent, request)
+
+    return result
+
+
+@mcp.tool()
+async def drive(request: str):
+    """StackAdapt Drive agent. In charge of performing all tasks related to Google Drive
+    Args:
+        request: The user request that we will need to handle.
+    """
+    result = await run_agent(drive_agent, request)
 
     return result
 

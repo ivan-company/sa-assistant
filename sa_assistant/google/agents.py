@@ -4,7 +4,7 @@ from agents import Agent, function_tool, RunContextWrapper
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
 from ..context import AssistantContext
-from .api import GoogleCalendarAPI
+from .api import GoogleCalendarAPI, GoogleDriveAPI
 
 
 @function_tool
@@ -133,5 +133,104 @@ calendar_agent = Agent(
         get_calendar_event,
         create_calendar_event,
         delete_calendar_event,
+    ]
+)
+
+
+@function_tool
+async def create_drive_file(
+    ctx: RunContextWrapper[AssistantContext],
+    file_name: str,
+    file_content: str
+):
+    """Create a new file in the drive.
+
+    Args:
+        file_name: The name of the file
+        file_content: The content of the file
+    """
+    return GoogleDriveAPI().create_file(file_name, file_content)
+
+
+@function_tool
+async def delete_drive_file(
+    ctx: RunContextWrapper[AssistantContext],
+    file_id: str
+):
+    """Delete a file from the drive.
+
+    Args:
+        file_id: The ID of the file to delete
+    """
+    return GoogleDriveAPI().delete_file(file_id)
+
+
+@function_tool
+async def list_files_in_path(
+    ctx: RunContextWrapper[AssistantContext],
+    path: str
+):
+    """List files in the drive.
+
+    Args:
+        path: The path to the folder to list files in
+    """
+    return GoogleDriveAPI().list_files_in_path(path)
+
+
+@function_tool
+async def read_drive_file_by_path(
+    ctx: RunContextWrapper[AssistantContext],
+    file_path: str
+):
+    """Read a file from the drive.
+
+    Args:
+        file_path: The path to the file to read
+    """
+    try:
+        return GoogleDriveAPI().download_file_by_path(file_path)
+    except Exception as e:
+        return {
+            'status': 'error',
+            'error': str(e),
+            'file_path': file_path
+        }
+
+
+def drive_agent_instructions(ctx: RunContextWrapper[AssistantContext], agent: Agent[AssistantContext]):
+    timezone = ctx.context.calendar.timezone
+    return f"""{RECOMMENDED_PROMPT_PREFIX}
+You are a Google Drive agent. Your job is to handle all tasks related to Google Drive, including:
+- Creating, reading, updating, and deleting files and folders
+- Listing files and folders in any directory
+- Moving and renaming files or folders
+- Sharing files or folders with others
+- Searching for files or folders by name
+
+Some relevant information:
+- Today's date is {datetime.now().strftime("%Y-%m-%d")}.
+- My timezone is {timezone}
+
+**Guidelines:**
+- Always confirm file/folder names and paths with the user if there is ambiguity.
+- If you encounter an error or cannot find a file/folder, inform the user and suggest next steps.
+- If you are unsure about a request, ask the user for clarification.
+
+**Examples:**
+- "Create a file named 'report.txt' in the 'Projects' folder."
+- "List all files in the 'Invoices/2024' folder."
+- "Share 'presentation.pdf' with alice@example.com."
+"""
+
+
+drive_agent = Agent(
+    name="Drive agent",
+    instructions=drive_agent_instructions,
+    tools=[
+        create_drive_file,
+        delete_drive_file,
+        list_files_in_path,
+        read_drive_file_by_path,
     ]
 )

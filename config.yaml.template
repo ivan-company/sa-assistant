@@ -3,9 +3,11 @@ jira:
   api_key: "<jira_api_key">
   api_email: "<jira_api_email"
   base_url: "https://stackadapt.atlassian.net"
-  team:
-    - "John Doe"
-    - "Jean Doe"
+team:
+  - "John Doe"
+  - "Jean Doe"
+managers:
+  - "John Doe"
 calendar:
     timezone: "America/Vancouver"
 slack:

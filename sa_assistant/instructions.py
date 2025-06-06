@@ -6,5 +6,5 @@ def my_team(
     ctx: RunContextWrapper[AssistantContext],
     agent: Agent[AssistantContext]
 ):
-    team = ",".join(ctx.context.jira.team)
+    team = ",".join(ctx.context.team)
     return f"When asked about 'my team', I'm refering to {team}"

@@ -1,6 +1,6 @@
-from .agents import daily_checks_agent
+from .agents import daily_calendar_check_agent
 
 
 __all__ = [
-    'daily_checks_agent',
+    'daily_calendar_check_agent',
 ]

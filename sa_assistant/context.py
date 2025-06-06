@@ -7,7 +7,6 @@ class JiraContext(BaseModel):
     api_email: str = Field(
         description="The email used for creating the API key")
     base_url: str = Field(description="The URL of the Jira instance")
-    team: List[str] = Field(description="List of your team members")
 
 
 class CalendarContext(BaseModel):
@@ -18,10 +17,9 @@ class SlackContext(BaseModel):
     api_token: str
 
 
-class AssistantContext(BaseModel):
-    jira: JiraContext | None = None
-    calendar: CalendarContext
-    slack: SlackContext
+class AsanaContext(BaseModel):
+    api_token: str
+    team_id: str
 
 
 class AssistantOutput(BaseModel):
@@ -36,3 +34,12 @@ class TicketInfo(BaseModel):
         description="Name of the person assigned to the ticket")
     story_points: float | None = Field(
         default=None, description="Story points for the ticket")
+
+
+class AssistantContext(BaseModel):
+    jira: JiraContext | None = None
+    calendar: CalendarContext
+    slack: SlackContext
+    asana: AsanaContext
+    team: List[str] = Field(description="List of your team members")
+    managers: List[str] = Field(description="List of your managers")

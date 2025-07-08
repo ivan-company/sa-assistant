@@ -12,3 +12,6 @@ calendar:
     timezone: "America/Vancouver"
 slack:
     api_token: "<token>"
+asana: #Below are dummy ids
+  api_token: "1/1246923306000:7f9182d6d6a841a897f400d797774822"
+  team_id: "1206759564402229"

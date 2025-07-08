@@ -7,6 +7,7 @@ class JiraContext(BaseModel):
     api_email: str = Field(
         description="The email used for creating the API key")
     base_url: str = Field(description="The URL of the Jira instance")
+    boards: List[str] = Field(default=["GROW"], description="List of JIRA boards to analyze for good morning summary")
 
 
 class CalendarContext(BaseModel):
@@ -43,3 +44,5 @@ class AssistantContext(BaseModel):
     asana: AsanaContext
     team: List[str] = Field(description="List of your team members")
     managers: List[str] = Field(description="List of your managers")
+    openai_api_key: str = Field(description="The OpenAI API key")
+    openai_model: str | None = Field(default="o4-mini", description="The OpenAI model to use")

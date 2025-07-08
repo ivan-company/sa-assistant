@@ -58,7 +58,6 @@ async def analyze_ticket_content_with_ai(
     Uses the model specified in config.yaml.
     """
     print(f"Analyzing ticket content with model: {model}")
-    print(f"OpenAI API key yahaha: {openai_api_key}")
     client = openai.AsyncOpenAI(api_key=openai_api_key)
     
     prompt = f"""
@@ -119,7 +118,7 @@ async def good_morning(
 ) -> Dict[str, Any]:
     """
     Good morning function that analyzes tickets across configured JIRA boards.
-    Finds tickets mentioning the user and identifies blockers/decisions needing EM attention.
+    Identifies blockers/decisions needing EM attention.
     Board list is configured in config.yaml under jira.boards.
     Uses AI-powered semantic analysis to detect blockers and decisions.
     
@@ -139,25 +138,10 @@ async def good_morning(
         print(f"Error connecting to JIRA: {e}")
         return {"error": "Failed to connect to JIRA"}
 
-    # Get current user info
-    try:
-        user_info = jira.myself()
-        user_name = user_info.get('displayName', '')
-        print(f"Retrieved user info - Display Name: '{user_name}'")
-    except Exception as e:
-        print(f"Error getting user info: {e}")
-        # Fallback: extract name from email
-        user_name = ctx.context.jira.api_email.split('@')[0].replace('.', ' ').title()
-        print(f"Using fallback user name: '{user_name}'")
-    
-    user_email = ctx.context.jira.api_email
-    
     results = {
-        "user_mentions": [],
         "blockers_and_decisions": [],
         "summary": {
             "total_tickets_analyzed": 0,
-            "tickets_mentioning_user": 0,
             "potential_blockers": 0,
             "decision_items": 0,
             "boards_analyzed": boards
@@ -187,47 +171,12 @@ async def good_morning(
                 all_text.append(full_issue.fields.description or "")
                 
                 # Get comments
-                comments_text = []
                 if hasattr(full_issue.fields, 'comment') and full_issue.fields.comment:
                     for comment in full_issue.fields.comment.comments:
                         comment_body = comment.body or ""
-                        comments_text.append(comment_body)
                         all_text.append(comment_body)
                 
                 combined_text = " ".join(all_text)
-                combined_text_lower = combined_text.lower()
-                
-                # Check for user mentions
-                user_mentioned = False
-                if (user_name.lower() in combined_text_lower or 
-                    user_email.lower() in combined_text_lower or
-                    any(name_part.lower() in combined_text_lower for name_part in user_name.split() if len(name_part) > 2)):
-                    user_mentioned = True
-                    results["summary"]["tickets_mentioning_user"] += 1
-                    
-                    # Find specific mentions in comments
-                    mention_details = []
-                    for i, comment in enumerate(comments_text):
-                        if (user_name.lower() in comment.lower() or 
-                            user_email.lower() in comment.lower()):
-                            mention_details.append({
-                                "comment_index": i + 1,
-                                "comment_preview": comment[:200] + "..." if len(comment) > 200 else comment
-                            })
-                    
-                    results["user_mentions"].append({
-                        "key": full_issue.key,
-                        "summary": full_issue.fields.summary,
-                        "status": full_issue.fields.status.name,
-                        "assignee": (
-                            full_issue.fields.assignee.displayName 
-                            if full_issue.fields.assignee 
-                            else "Unassigned"
-                        ),
-                        "board": board,
-                        "mention_details": mention_details,
-                        "url": f"{ctx.context.jira.base_url}/browse/{full_issue.key}"
-                    })
                 
                 # Use AI to analyze for blockers and decisions
                 if len(combined_text.strip()) > 50:  # Only analyze if there's substantial content

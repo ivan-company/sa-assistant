@@ -1,20 +1,16 @@
-import os 
 from agents import Runner, RunConfig
 from sa_assistant.context import AssistantContext
 from sa_assistant.google.api import GoogleDriveAPI
+from sa_assistant.utils import load_config_and_setup_env
 import sa_assistant
 import asyncio
-import yaml
 
-config = yaml.load(open("config.yaml"), Loader=yaml.Loader)
-context = AssistantContext(**config)
+config, context = load_config_and_setup_env()
 
 
 async def main():
     # Create RunConfig with the model from context - currently only used for model selection
     run_config = RunConfig(model=context.openai_model)
-
-    os.environ["OPENAI_API_KEY"] = config["openai_api_key"]
 
     result = await Runner.run(
         sa_assistant.jira_agent,
@@ -47,7 +43,7 @@ async def test_slack_agent():
     """Test the slack agent by sending a test message"""
     run_config = RunConfig(model=context.openai_model)
     
-    # Test sending a message to a channel (replace with your actual channel)
+    # Test sending a message to a channel (replace with your actual channel and prompts)
     result = await Runner.run(
         sa_assistant.slack_agent,
         "Send a test message 'Hello from the AI assistant!' to @Winston Zhu",

@@ -2,6 +2,9 @@ from agents import Agent, function_tool, RunContextWrapper
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from jira import JIRA
 from dotenv import load_dotenv
+from typing import List, Dict, Any
+import openai
+import json
 
 from ..context import AssistantContext, TicketInfo, JiraContext
 
@@ -43,6 +46,242 @@ async def get_tickets(
     ]
 
     return data
+
+
+async def analyze_ticket_content_with_ai(
+    content: str, 
+    openai_api_key: str,
+    model: str
+) -> Dict[str, Any]:
+    """
+    Use AI to semantically analyze ticket content for blockers and decisions.
+    Uses the model specified in config.yaml.
+    """
+    print(f"Analyzing ticket content with model: {model}")
+    print(f"OpenAI API key yahaha: {openai_api_key}")
+    client = openai.AsyncOpenAI(api_key=openai_api_key)
+    
+    prompt = f"""
+    Analyze the following JIRA ticket content (including description and comments) and determine:
+
+    1. Does this content indicate a BLOCKER? (Something that prevents progress, creates dependencies, or requires external resolution)
+    2. Does this content indicate a TECHNICAL/PRODUCT DECISION that needs to be made? (Architecture choices, product direction, technical approach, etc.)
+
+    For each category that applies, provide:
+    - A confidence score (0-100)
+    - A brief explanation of why it qualifies
+    - Key phrases that support your assessment
+
+    Content to analyze:
+    {content}
+
+    Respond in JSON format:
+    {{
+        "blocker": {{
+            "detected": true/false,
+            "confidence": 0-100,
+            "explanation": "brief explanation",
+            "key_phrases": ["phrase1", "phrase2"]
+        }},
+        "decision": {{
+            "detected": true/false,
+            "confidence": 0-100,
+            "explanation": "brief explanation",
+            "key_phrases": ["phrase1", "phrase2"]
+        }}
+    }}
+    """
+    
+    try:
+        response = await client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": "You are an expert at analyzing software development tickets to identify blockers and decision points. Be precise and only flag items with high confidence."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1,
+            response_format={"type": "json_object"}
+        )
+        
+        result = json.loads(response.choices[0].message.content)
+        return result
+    except Exception as e:
+        print(f"Error in AI analysis: {e}")
+        return {
+            "blocker": {"detected": False, "confidence": 0, "explanation": "AI analysis failed", "key_phrases": []},
+            "decision": {"detected": False, "confidence": 0, "explanation": "AI analysis failed", "key_phrases": []}
+        }
+
+
+@function_tool
+async def good_morning(
+    ctx: RunContextWrapper[AssistantContext]
+) -> Dict[str, Any]:
+    """
+    Good morning function that analyzes tickets across configured JIRA boards.
+    Finds tickets mentioning the user and identifies blockers/decisions needing EM attention.
+    Board list is configured in config.yaml under jira.boards.
+    Uses AI-powered semantic analysis to detect blockers and decisions.
+    
+    Scope: Only analyzes tickets in the current sprint (open sprints).
+    """
+    # Get boards from configuration
+    boards = ctx.context.jira.boards if ctx.context.jira and ctx.context.jira.boards else ["CRE"]
+    print(f"Running good morning analysis for boards: {boards}")
+    
+    try:
+        jira = JIRA(
+            server=ctx.context.jira.base_url,
+            basic_auth=(ctx.context.jira.api_email,
+                        ctx.context.jira.api_key),
+        )
+    except Exception as e:
+        print(f"Error connecting to JIRA: {e}")
+        return {"error": "Failed to connect to JIRA"}
+
+    # Get current user info
+    try:
+        user_info = jira.myself()
+        user_name = user_info.get('displayName', '')
+        print(f"Retrieved user info - Display Name: '{user_name}'")
+    except Exception as e:
+        print(f"Error getting user info: {e}")
+        # Fallback: extract name from email
+        user_name = ctx.context.jira.api_email.split('@')[0].replace('.', ' ').title()
+        print(f"Using fallback user name: '{user_name}'")
+    
+    user_email = ctx.context.jira.api_email
+    
+    results = {
+        "user_mentions": [],
+        "blockers_and_decisions": [],
+        "summary": {
+            "total_tickets_analyzed": 0,
+            "tickets_mentioning_user": 0,
+            "potential_blockers": 0,
+            "decision_items": 0,
+            "boards_analyzed": boards
+        }
+    }
+    
+    for board in boards:
+        print(f"Analyzing board: {board}")
+        
+        # Get active tickets from the board (not Done/Closed) in current sprint only, excluding Test and Task types
+        jql_query = f'project = "{board}" AND status NOT IN ("DONE", "QA REVIEW", "READY TO MERGE", "WONT DO") AND type NOT IN ("Test", "Task") AND Sprint in openSprints() ORDER BY updated DESC'
+        print(f"JQL query: {jql_query}")
+
+        try:
+            issues = jira.search_issues(jql_query, expand='comments', maxResults=50)
+            
+            for issue in issues:
+                print(f"Analyzing issue: {issue.key}")
+                results["summary"]["total_tickets_analyzed"] += 1
+                
+                # Get full issue details including comments
+                full_issue = jira.issue(issue.key, expand='comments')
+                
+                # Combine all text content for analysis
+                all_text = []
+                all_text.append(full_issue.fields.summary or "")
+                all_text.append(full_issue.fields.description or "")
+                
+                # Get comments
+                comments_text = []
+                if hasattr(full_issue.fields, 'comment') and full_issue.fields.comment:
+                    for comment in full_issue.fields.comment.comments:
+                        comment_body = comment.body or ""
+                        comments_text.append(comment_body)
+                        all_text.append(comment_body)
+                
+                combined_text = " ".join(all_text)
+                combined_text_lower = combined_text.lower()
+                
+                # Check for user mentions
+                user_mentioned = False
+                if (user_name.lower() in combined_text_lower or 
+                    user_email.lower() in combined_text_lower or
+                    any(name_part.lower() in combined_text_lower for name_part in user_name.split() if len(name_part) > 2)):
+                    user_mentioned = True
+                    results["summary"]["tickets_mentioning_user"] += 1
+                    
+                    # Find specific mentions in comments
+                    mention_details = []
+                    for i, comment in enumerate(comments_text):
+                        if (user_name.lower() in comment.lower() or 
+                            user_email.lower() in comment.lower()):
+                            mention_details.append({
+                                "comment_index": i + 1,
+                                "comment_preview": comment[:200] + "..." if len(comment) > 200 else comment
+                            })
+                    
+                    results["user_mentions"].append({
+                        "key": full_issue.key,
+                        "summary": full_issue.fields.summary,
+                        "status": full_issue.fields.status.name,
+                        "assignee": (
+                            full_issue.fields.assignee.displayName 
+                            if full_issue.fields.assignee 
+                            else "Unassigned"
+                        ),
+                        "board": board,
+                        "mention_details": mention_details,
+                        "url": f"{ctx.context.jira.base_url}/browse/{full_issue.key}"
+                    })
+                
+                # Use AI to analyze for blockers and decisions
+                if len(combined_text.strip()) > 50:  # Only analyze if there's substantial content
+                    ai_analysis = await analyze_ticket_content_with_ai(
+                        combined_text,
+                        ctx.context.openai_api_key,
+                        ctx.context.openai_model or "gpt-4o-mini"
+                    )
+                    
+                    blocker_detected = ai_analysis.get("blocker", {}).get("detected", False)
+                    blocker_confidence = ai_analysis.get("blocker", {}).get("confidence", 0)
+                    decision_detected = ai_analysis.get("decision", {}).get("detected", False)
+                    decision_confidence = ai_analysis.get("decision", {}).get("confidence", 0)
+                    
+                    # Only flag items with high confidence (>70)
+                    if (blocker_detected and blocker_confidence > 70) or (decision_detected and decision_confidence > 70):
+                        item_type = []
+                        analysis_details = {}
+                        
+                        if blocker_detected and blocker_confidence > 70:
+                            item_type.append("blocker")
+                            results["summary"]["potential_blockers"] += 1
+                            analysis_details["blocker"] = ai_analysis["blocker"]
+                            
+                        if decision_detected and decision_confidence > 70:
+                            item_type.append("decision")
+                            results["summary"]["decision_items"] += 1
+                            analysis_details["decision"] = ai_analysis["decision"]
+                        
+                        results["blockers_and_decisions"].append({
+                            "key": full_issue.key,
+                            "summary": full_issue.fields.summary,
+                            "status": full_issue.fields.status.name,
+                            "assignee": (
+                                full_issue.fields.assignee.displayName 
+                                if full_issue.fields.assignee 
+                                else "Unassigned"
+                            ),
+                            "board": board,
+                            "type": item_type,
+                            "ai_analysis": analysis_details,
+                            "priority": (
+                                full_issue.fields.priority.name 
+                                if hasattr(full_issue.fields, 'priority') and full_issue.fields.priority 
+                                else "Unknown"
+                            ),
+                            "url": f"{ctx.context.jira.base_url}/browse/{full_issue.key}"
+                        })
+                        
+        except Exception as e:
+            print(f"Error analyzing board {board}: {e}")
+            continue
+    
+    return results
 
 
 jql_agent = Agent[AssistantContext](
@@ -109,7 +348,7 @@ First, use the JQL translation agent to convert the user's request into a JQL qu
 Then, use the get_tickets function with that query to fetch the relevant tickets.
 If the customer asks a question that is not related to tickets, transfer back to the triage agent.
 """,
-    tools=[get_tickets],
+    tools=[get_tickets, good_morning],
     handoffs=[jql_agent],
 )
 

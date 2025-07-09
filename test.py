@@ -1,19 +1,22 @@
-from agents import Runner
+from agents import Runner, RunConfig
 from sa_assistant.context import AssistantContext
 from sa_assistant.google.api import GoogleDriveAPI
+from sa_assistant.utils import load_config_and_setup_env
 import sa_assistant
 import asyncio
-import yaml
 
-config = yaml.load(open("config.yaml"), Loader=yaml.Loader)
-context = AssistantContext(**config)
+config, context = load_config_and_setup_env()
 
 
 async def main():
+    # Create RunConfig with the model from context - currently only used for model selection
+    run_config = RunConfig(model=context.openai_model)
+
     result = await Runner.run(
-        sa_assistant.drive_agent,
-        "Make a summary of the file 'Product Management/Creatives/PRDs/Documentation in Progress/PRD: Generative AI and Creatives 2'",
+        sa_assistant.jira_agent,
+        "Help me summarize sprint goal for the 'GROW' project, in the current sprint.",
         context=context,
+        run_config=run_config,
     )
     print(result.final_output)
 
@@ -35,5 +38,48 @@ async def test_google_drive():
     # print(all_files)
     # drive_api.debug_find_item("Product Management")
 
+
+async def test_slack_agent():
+    """Test the slack agent by sending a test message"""
+    run_config = RunConfig(model=context.openai_model)
+    
+    # Test sending a message to a channel (replace with your actual channel and prompts)
+    result = await Runner.run(
+        sa_assistant.slack_agent,
+        "Send a test message 'Hello from the AI assistant!' to @Winston Zhu",
+        context=context,
+        run_config=run_config,
+    )
+    print("Slack test result:", result.final_output)
+
+
+async def test_slack_agent_dm():
+    """Test the slack agent by sending a DM"""
+    run_config = RunConfig(model=context.openai_model)
+    
+    # Test sending a DM (replace with actual username)
+    result = await Runner.run(
+        sa_assistant.slack_agent,
+        "Send a direct message 'Hi! This is a test from the AI assistant.' to @winston.zhu",
+        context=context,
+        run_config=run_config,
+    )
+    print("Slack DM test result:", result.final_output)
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    import sys
+    
+    if len(sys.argv) > 1:
+        test_name = sys.argv[1]
+        if test_name == "slack":
+            asyncio.run(test_slack_agent())
+        elif test_name == "slack-dm":
+            asyncio.run(test_slack_agent_dm())
+        elif test_name == "jira":
+            asyncio.run(main())
+        else:
+            print("Available tests: slack, slack-dm, jira")
+    else:
+        # Default test
+        asyncio.run(main())

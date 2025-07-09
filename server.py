@@ -1,19 +1,20 @@
-from agents import Runner
+from agents import Runner, RunConfig
 from mcp.server.fastmcp import FastMCP
 from sa_assistant import calendar_agent, jira_agent, slack_agent, drive_agent, daily_calendar_check_agent
 from sa_assistant.context import AssistantContext
-import yaml
+from sa_assistant.utils import load_config_and_setup_env
 
 # Create an MCP server
 mcp = FastMCP("StackAdapt Assistant")
 
 
 async def run_agent(agent, request):
-    config = yaml.load(open("config.yaml"), Loader=yaml.Loader)
+    config, context = load_config_and_setup_env()
+    
+    # Create RunConfig with the model from context
+    run_config = RunConfig(model=context.openai_model)
 
-    context = AssistantContext(**config)
-
-    result = await Runner.run(agent, request, context=context)
+    result = await Runner.run(agent, request, context=context, run_config=run_config)
     return result.final_output
 
 

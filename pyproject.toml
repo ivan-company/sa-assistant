@@ -22,3 +22,5 @@ dependencies = [
     "slack-sdk>=3.35.0",
     "sqlmodel>=0.0.24",
 ]
+[tool.flake8]
+max-line-length = 120

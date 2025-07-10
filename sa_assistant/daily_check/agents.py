@@ -42,6 +42,9 @@ async def daily_calendar_check(ctx: RunContextWrapper[AssistantContext], request
         date_obj = now
 
     calendar_api = GoogleCalendarAPI()
+    asana_api = AsanaAPI(ctx.context.asana.api_token,
+                         ctx.context.asana.team_id)
+
     calendar_events = calendar_api.get_events(
         calendar_id='primary',
         time_min=(date_obj.replace(hour=0, minute=0,
@@ -52,6 +55,7 @@ async def daily_calendar_check(ctx: RunContextWrapper[AssistantContext], request
         order_by='startTime'
     )
     for event in calendar_events:
+        asana_tasks = []
         # Only consider events with attendees
         if not event.attendees:
             continue
@@ -62,6 +66,12 @@ async def daily_calendar_check(ctx: RunContextWrapper[AssistantContext], request
         ]
         if len(attendees) == 1:
             event_type = DailyCheckEventType.ONE_TO_ONE
+            print(f"One to one with {attendees[0]}")
+            projects = asana_api.get_projects_with_users([attendees[0]])
+            for project in projects:
+                print(f"Project: {project.name}")
+                tasks = asana_api.get_tasks_by_project(project.gid)
+                asana_tasks.extend(tasks)
         else:
             event_type = DailyCheckEventType.TEAM_MEETING
 
@@ -69,11 +79,9 @@ async def daily_calendar_check(ctx: RunContextWrapper[AssistantContext], request
             DailyCheckCalendarEvent(
                 event=event,
                 event_type=event_type,
-                asana_tasks=[]
+                asana_tasks=asana_tasks
             )
         )
-
-    asana_api = AsanaAPI(ctx.context.asana.api_token)
 
     return result
 

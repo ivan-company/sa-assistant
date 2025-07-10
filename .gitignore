@@ -12,3 +12,4 @@ calendar_secrets.json
 
 # Virtual environments
 .venv
+.vector_store

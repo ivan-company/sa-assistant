@@ -12,6 +12,7 @@ class AsanaAPI:
         self.team_id = team_id
 
         self.client = asana.ApiClient(configuration)
+        self.projects = self.get_projects_by_team(self.team_id)
 
     def get_user(self, user_gid="me") -> AsanaUser:
         api = asana.UsersApi(self.client)
@@ -82,13 +83,12 @@ class AsanaAPI:
             due_at=t['due_at']
         ) for t in tasks]
 
-    def get_projects_with_users(self, user_names: List[str]) -> List[AsanaProject]:
+    def get_projects_with_users(self, user_emails: List[str]) -> List[AsanaProject]:
         """
         Returns the list of projects that have all the given users as followers.
         """
-        projects = self.get_projects_by_team(self.team_id)
         results = []
-        for project in projects:
-            if (set(user_names).issubset(set(f.name for f in project.followers))):
+        for project in self.projects:
+            if (set(user_emails).issubset(set(f.email for f in project.followers))):
                 results.append(project)
         return results

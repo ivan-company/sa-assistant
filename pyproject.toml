@@ -7,6 +7,8 @@ requires-python = ">=3.13"
 dependencies = [
     "aiohttp>=3.12.1",
     "asana>=5.1.0",
+    "chromadb>=1.0.15",
+    "dotenv>=0.9.9",
     "google-api-python-client>=2.170.0",
     "google-auth>=2.40.2",
     "google-auth-httplib2>=0.2.0",
@@ -14,6 +16,7 @@ dependencies = [
     "google-genai>=1.17.0",
     "jira>=3.8.0",
     "mcp[cli]>=1.9.0",
+    "openai>=1.79.0",
     "openai-agents>=0.0.15",
     "pydantic>=2.11.4",
     "python-lsp-server[all]>=1.12.2",

@@ -10,10 +10,6 @@ from agents import Runner, RunConfig
 from sa_assistant.context import AssistantContext
 
 config, context = load_config_and_setup_env()
-try:
-    from pdfminer.high_level import extract_text
-except ImportError:
-    extract_text = None
 
 config = yaml.load(
     open("config.yaml"), Loader=yaml.Loader
@@ -119,9 +115,6 @@ async def _populate_vector_store():
 
 
 async def test_gdocs_extraction():
-    if extract_text is None:
-        print("Please install pdfminer.six: uv pip install pdfminer.six")
-        return
     store = VectorStore()
 
     if not store.has_collection("gdrive"):

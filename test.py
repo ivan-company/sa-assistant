@@ -1,4 +1,3 @@
-import io
 from sa_assistant.google.api import GoogleDocsAPI
 from sa_assistant.vectorstore.chroma_store import VectorStore
 import yaml
@@ -7,13 +6,10 @@ from sa_assistant.asana.api import AsanaAPI
 import asyncio
 import sa_assistant
 from sa_assistant.utils import load_config_and_setup_env
-from sa_assistant.google.api import GoogleDriveAPI
 from agents import Runner, RunConfig
 from sa_assistant.context import AssistantContext
-<< << << < Updated upstream
 
 config, context = load_config_and_setup_env()
-== == == =
 try:
     from pdfminer.high_level import extract_text
 except ImportError:
@@ -23,7 +19,6 @@ config = yaml.load(
     open("config.yaml"), Loader=yaml.Loader
 )
 context = AssistantContext(**config)
->>>>>> > Stashed changes
 
 
 async def main():
@@ -31,16 +26,8 @@ async def main():
     run_config = RunConfig(model=context.openai_model)
 
     result = await Runner.run(
-        << << << < Updated upstream
         sa_assistant.jira_agent,
         "Help me summarize sprint goal for the 'GROW' project, in the current sprint.",
-        == == == =
-        sa_assistant.drive_agent,
-        (
-            "Make a summary of the file 'Product Management/Creatives/PRDs/"
-            "Documentation in Progress/PRD: Generative AI and Creatives 2'"
-        ),
-        >>>>>> > Stashed changes
         context=context,
         run_config=run_config,
     )

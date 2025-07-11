@@ -1,13 +1,13 @@
-from sa_assistant.google.api import GoogleDocsAPI
-from sa_assistant.vectorstore.chroma_store import VectorStore
-import yaml
-from sa_assistant.daily_check.agents import daily_calendar_check_agent
-from sa_assistant.asana.api import AsanaAPI
 import asyncio
-import sa_assistant
-from sa_assistant.utils import load_config_and_setup_env
+import yaml
 from agents import Runner, RunConfig
+from sa_assistant.integrations.google.docs import GoogleDocsAPI
+from sa_assistant.vectorstore.chroma_store import VectorStore
+from sa_assistant.agents.daily_check import daily_calendar_check_agent
+from sa_assistant.integrations.asana import AsanaAPI
+from sa_assistant.utils import load_config_and_setup_env
 from sa_assistant.context import AssistantContext
+import sa_assistant
 
 config, context = load_config_and_setup_env()
 
@@ -152,7 +152,7 @@ async def test_slack_agent_dm():
     # Test sending a DM (replace with actual username)
     result = await Runner.run(
         sa_assistant.slack_agent,
-        "Send a direct message 'Hi! This is a test from the AI assistant.' to @winston.zhu",
+        "Send a direct message 'Hi! This is a test from the AI assistant.' to @ivan.company",
         context=context,
         run_config=run_config,
     )

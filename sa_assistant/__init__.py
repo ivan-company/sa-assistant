@@ -1,7 +1,8 @@
-from .google import calendar_agent, drive_agent
-from .jira import jira_agent
-from .slack import slack_agent
-from .daily_check import daily_calendar_check_agent
+from .agents.google_calendar import calendar_agent
+from .agents.google_drive import drive_agent
+from .agents.jira import jira_agent
+from .agents.slack import slack_agent
+from .agents.daily_check import daily_calendar_check_agent
 
 __all__ = [
     'calendar_agent',

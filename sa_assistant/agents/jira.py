@@ -1,55 +1,18 @@
+import json
+from typing import Dict, Any
 from agents import Agent, function_tool, RunContextWrapper
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from jira import JIRA
 from dotenv import load_dotenv
-from typing import List, Dict, Any
 import openai
-import json
-
-from ..context import AssistantContext, TicketInfo, JiraContext
+from sa_assistant.tools.jira import get_tickets
+from ..context import AssistantContext, JiraContext
 
 load_dotenv()
 
 
-@function_tool
-async def get_tickets(
-    ctx: RunContextWrapper[AssistantContext], jql: str
-) -> list[TicketInfo]:
-    """Get tickets based on a JQL query."""
-    print("Getting tickets with query:", jql)
-    try:
-        jira = JIRA(
-            server=ctx.context.jira.base_url,
-            basic_auth=(ctx.context.jira.api_email,
-                        ctx.context.jira.api_key),
-        )
-    except Exception as e:
-        print(e)
-        return []
-
-    # Get tickets based on the JQL query
-    issues = jira.search_issues(jql)
-
-    data = [
-        TicketInfo(
-            key=issue.key,
-            summary=issue.fields.summary,
-            status=issue.fields.status.name,
-            assignee=(
-                issue.fields.assignee.displayName
-                if issue.fields.assignee
-                else "Unassigned"
-            ),
-            story_points=getattr(issue.fields, "customfield_10708", None),
-        )
-        for issue in issues
-    ]
-
-    return data
-
-
 async def analyze_ticket_content_with_ai(
-    content: str, 
+    content: str,
     openai_api_key: str,
     model: str
 ) -> Dict[str, Any]:
@@ -59,7 +22,7 @@ async def analyze_ticket_content_with_ai(
     """
     print(f"Analyzing ticket content with model: {model}")
     client = openai.AsyncOpenAI(api_key=openai_api_key)
-    
+
     prompt = f"""
     Analyze the following JIRA ticket content (including description and comments) and determine:
 
@@ -90,18 +53,21 @@ async def analyze_ticket_content_with_ai(
         }}
     }}
     """
-    
+
     try:
         response = await client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": "You are an expert at analyzing software development tickets to identify blockers and decision points. Be precise and only flag items with high confidence."},
+                {"role": "system", "content": (
+                    "You are an expert at analyzing software development tickets to identify blockers and decision points."
+                    " Be precise and only flag items with high confidence."
+                )},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.1,
             response_format={"type": "json_object"}
         )
-        
+
         result = json.loads(response.choices[0].message.content)
         return result
     except Exception as e:
@@ -121,13 +87,14 @@ async def good_morning(
     Identifies blockers/decisions needing EM attention.
     Board list is configured in config.yaml under jira.boards.
     Uses AI-powered semantic analysis to detect blockers and decisions.
-    
+
     Scope: Only analyzes tickets in the current sprint (open sprints).
     """
     # Get boards from configuration
-    boards = ctx.context.jira.boards if ctx.context.jira and ctx.context.jira.boards else ["CRE"]
+    boards = ctx.context.jira.boards if ctx.context.jira and ctx.context.jira.boards else [
+        "CRE"]
     print(f"Running good morning analysis for boards: {boards}")
-    
+
     try:
         jira = JIRA(
             server=ctx.context.jira.base_url,
@@ -147,37 +114,38 @@ async def good_morning(
             "boards_analyzed": boards
         }
     }
-    
+
     for board in boards:
         print(f"Analyzing board: {board}")
-        
+
         # Get active tickets from the board (not Done/Closed) in current sprint only, excluding Test and Task types
         jql_query = f'project = "{board}" AND status NOT IN ("DONE", "QA REVIEW", "READY TO MERGE", "WONT DO") AND type NOT IN ("Test", "Task") AND Sprint in openSprints() ORDER BY updated DESC'
         print(f"JQL query: {jql_query}")
 
         try:
-            issues = jira.search_issues(jql_query, expand='comments', maxResults=50)
-            
+            issues = jira.search_issues(
+                jql_query, expand='comments', maxResults=50)
+
             for issue in issues:
                 print(f"Analyzing issue: {issue.key}")
                 results["summary"]["total_tickets_analyzed"] += 1
-                
+
                 # Get full issue details including comments
                 full_issue = jira.issue(issue.key, expand='comments')
-                
+
                 # Combine all text content for analysis
                 all_text = []
                 all_text.append(full_issue.fields.summary or "")
                 all_text.append(full_issue.fields.description or "")
-                
+
                 # Get comments
                 if hasattr(full_issue.fields, 'comment') and full_issue.fields.comment:
                     for comment in full_issue.fields.comment.comments:
                         comment_body = comment.body or ""
                         all_text.append(comment_body)
-                
+
                 combined_text = " ".join(all_text)
-                
+
                 # Use AI to analyze for blockers and decisions
                 if len(combined_text.strip()) > 50:  # Only analyze if there's substantial content
                     ai_analysis = await analyze_ticket_content_with_ai(
@@ -185,51 +153,55 @@ async def good_morning(
                         ctx.context.openai_api_key,
                         ctx.context.openai_model or "gpt-4o-mini"
                     )
-                    
-                    blocker_detected = ai_analysis.get("blocker", {}).get("detected", False)
-                    blocker_confidence = ai_analysis.get("blocker", {}).get("confidence", 0)
-                    decision_detected = ai_analysis.get("decision", {}).get("detected", False)
-                    decision_confidence = ai_analysis.get("decision", {}).get("confidence", 0)
-                    
+
+                    blocker_detected = ai_analysis.get(
+                        "blocker", {}).get("detected", False)
+                    blocker_confidence = ai_analysis.get(
+                        "blocker", {}).get("confidence", 0)
+                    decision_detected = ai_analysis.get(
+                        "decision", {}).get("detected", False)
+                    decision_confidence = ai_analysis.get(
+                        "decision", {}).get("confidence", 0)
+
                     # Only flag items with high confidence (>70)
                     if (blocker_detected and blocker_confidence > 70) or (decision_detected and decision_confidence > 70):
                         item_type = []
                         analysis_details = {}
-                        
+
                         if blocker_detected and blocker_confidence > 70:
                             item_type.append("blocker")
                             results["summary"]["potential_blockers"] += 1
                             analysis_details["blocker"] = ai_analysis["blocker"]
-                            
+
                         if decision_detected and decision_confidence > 70:
                             item_type.append("decision")
                             results["summary"]["decision_items"] += 1
                             analysis_details["decision"] = ai_analysis["decision"]
-                        
+
                         results["blockers_and_decisions"].append({
                             "key": full_issue.key,
                             "summary": full_issue.fields.summary,
                             "status": full_issue.fields.status.name,
                             "assignee": (
-                                full_issue.fields.assignee.displayName 
-                                if full_issue.fields.assignee 
+                                full_issue.fields.assignee.displayName
+                                if full_issue.fields.assignee
                                 else "Unassigned"
                             ),
                             "board": board,
                             "type": item_type,
                             "ai_analysis": analysis_details,
                             "priority": (
-                                full_issue.fields.priority.name 
-                                if hasattr(full_issue.fields, 'priority') and full_issue.fields.priority 
+                                full_issue.fields.priority.name
+                                if hasattr(full_issue.fields, 'priority') and full_issue.fields.priority
                                 else "Unknown"
                             ),
                             "url": f"{ctx.context.jira.base_url}/browse/{full_issue.key}"
                         })
-                        
+
         except Exception as e:
             print(f"Error analyzing board {board}: {e}")
             continue
-    
+
     return results
 
 

@@ -6,9 +6,7 @@ from ...context import AssistantContext
 
 @function_tool
 async def create_drive_file(
-    ctx: RunContextWrapper[AssistantContext],
-    file_name: str,
-    file_content: str
+    ctx: RunContextWrapper[AssistantContext], file_name: str, file_content: str
 ):
     """Create a new file in the drive.
 
@@ -20,10 +18,7 @@ async def create_drive_file(
 
 
 @function_tool
-async def delete_drive_file(
-    ctx: RunContextWrapper[AssistantContext],
-    file_id: str
-):
+async def delete_drive_file(ctx: RunContextWrapper[AssistantContext], file_id: str):
     """Delete a file from the drive.
 
     Args:
@@ -33,10 +28,7 @@ async def delete_drive_file(
 
 
 @function_tool
-async def list_files_in_path(
-    ctx: RunContextWrapper[AssistantContext],
-    path: str
-):
+async def list_files_in_path(ctx: RunContextWrapper[AssistantContext], path: str):
     """List files in the drive.
 
     Args:
@@ -47,8 +39,7 @@ async def list_files_in_path(
 
 @function_tool
 async def read_drive_file_by_path(
-    ctx: RunContextWrapper[AssistantContext],
-    file_path: str
+    ctx: RunContextWrapper[AssistantContext], file_path: str
 ):
     """Read a file from the drive.
 
@@ -58,8 +49,4 @@ async def read_drive_file_by_path(
     try:
         return GoogleDriveAPI().download_file_by_path(file_path)
     except Exception as e:
-        return {
-            'status': 'error',
-            'error': str(e),
-            'file_path': file_path
-        }
+        return {"status": "error", "error": str(e), "file_path": file_path}

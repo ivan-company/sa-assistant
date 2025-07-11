@@ -4,11 +4,12 @@ from typing import List
 
 class JiraContext(BaseModel):
     api_key: str = Field(description="The API key for the Jira instance")
-    api_email: str = Field(
-        description="The email used for creating the API key")
+    api_email: str = Field(description="The email used for creating the API key")
     base_url: str = Field(description="The URL of the Jira instance")
-    boards: List[str] = Field(default=[
-                              "GROW"], description="List of JIRA boards to analyze for good morning summary")
+    boards: List[str] = Field(
+        default=["GROW"],
+        description="List of JIRA boards to analyze for good morning summary",
+    )
 
 
 class CalendarContext(BaseModel):
@@ -37,4 +38,5 @@ class AssistantContext(BaseModel):
     managers: List[str] = Field(description="List of your managers")
     openai_api_key: str = Field(description="The OpenAI API key")
     openai_model: str | None = Field(
-        default="o4-mini", description="The OpenAI model to use")
+        default="o4-mini", description="The OpenAI model to use"
+    )

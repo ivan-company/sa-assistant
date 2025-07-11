@@ -9,10 +9,10 @@ class TicketInfo(BaseModel):
     key: str = Field(description="The ticket key (e.g., PROJ-123)")
     summary: str = Field(description="The ticket summary")
     status: str = Field(description="Current status of the ticket")
-    assignee: str = Field(
-        description="Name of the person assigned to the ticket")
+    assignee: str = Field(description="Name of the person assigned to the ticket")
     story_points: float | None = Field(
-        default=None, description="Story points for the ticket")
+        default=None, description="Story points for the ticket"
+    )
 
 
 @function_tool
@@ -23,8 +23,7 @@ async def get_tickets(
     try:
         jira = JIRA(
             server=ctx.context.jira.base_url,
-            basic_auth=(ctx.context.jira.api_email,
-                        ctx.context.jira.api_key),
+            basic_auth=(ctx.context.jira.api_email, ctx.context.jira.api_key),
         )
     except Exception as e:
         print(e)

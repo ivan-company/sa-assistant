@@ -12,7 +12,9 @@ from sa_assistant.tools.google.drive import (
 from ..context import AssistantContext
 
 
-def drive_agent_instructions(ctx: RunContextWrapper[AssistantContext], agent: Agent[AssistantContext]):
+def drive_agent_instructions(
+    ctx: RunContextWrapper[AssistantContext], agent: Agent[AssistantContext]
+):
     timezone = ctx.context.calendar.timezone
     return f"""{RECOMMENDED_PROMPT_PREFIX}
 You are a Google Drive agent. Your job is to handle all tasks related to Google Drive, including:
@@ -46,5 +48,5 @@ drive_agent = Agent(
         delete_drive_file,
         list_files_in_path,
         read_drive_file_by_path,
-    ]
+    ],
 )

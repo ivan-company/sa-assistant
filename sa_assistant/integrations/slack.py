@@ -17,7 +17,6 @@ class SlackChat(SlackConversation, table=True):
 
 
 class SlackAPI:
-
     def __init__(self, api_token):
         self.api_token = api_token
         self.client = WebClient(token=self.api_token)
@@ -30,10 +29,12 @@ class SlackAPI:
         )
 
         for channel in channels_response["channels"]:
-            results.append(SlackChannel(
-                id=channel["id"],
-                name=channel["name"],
-                is_private=channel.get("is_private", False))
+            results.append(
+                SlackChannel(
+                    id=channel["id"],
+                    name=channel["name"],
+                    is_private=channel.get("is_private", False),
+                )
             )
 
         return results
@@ -45,14 +46,17 @@ class SlackAPI:
             response = self.client.users_list(limit=200, cursor=next_cursor)
 
             for user in response["members"]:
-                results.append(SlackChat(
-                    id=user["id"],
-                    real_name=user.get("real_name", user.get(
-                        "profile", {}).get("real_name", "")),
-                    name=user.get("name")
-                ))
+                results.append(
+                    SlackChat(
+                        id=user["id"],
+                        real_name=user.get(
+                            "real_name", user.get("profile", {}).get("real_name", "")
+                        ),
+                        name=user.get("name"),
+                    )
+                )
 
-            if not response.get('response_metadata').get('next_cursor'):
+            if not response.get("response_metadata").get("next_cursor"):
                 break
 
             next_cursor = response["response_metadata"]["next_cursor"]
@@ -60,9 +64,6 @@ class SlackAPI:
         return results
 
     def send_message(self, channel_id: str, message: str):
-        response = self.client.chat_postMessage(
-            channel=channel_id,
-            text=message
-        )
+        response = self.client.chat_postMessage(channel=channel_id, text=message)
 
         return response

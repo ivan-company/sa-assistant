@@ -11,9 +11,7 @@ import sa_assistant
 
 config, context = load_config_and_setup_env()
 
-config = yaml.load(
-    open("config.yaml"), Loader=yaml.Loader
-)
+config = yaml.load(open("config.yaml", encoding="utf-8"), Loader=yaml.Loader)
 context = AssistantContext(**config)
 
 
@@ -42,17 +40,16 @@ async def test_daily_calendar_check():
 async def test_asana():
     api = AsanaAPI(context.asana.api_token, context.asana.team_id)
     projects = api.get_projects_with_users(
-        ["ivan.company@stack.com", "devon.mack@stack.com"])
+        ["ivan.company@stack.com", "devon.mack@stack.com"]
+    )
     for project in projects:
         print(f"Project: {project.name}")
         tasks = api.get_tasks_by_project(project.gid)
         for task in tasks:
             print(f"Task: {task.name}")
-            print(
-                f"Assignee: {task.assignee.name if task.assignee else 'None'}")
+            print(f"Assignee: {task.assignee.name if task.assignee else 'None'}")
             print(f"Notes: {task.notes}")
-            print(
-                f"Section: {task.section.name if task.section else 'None'}")
+            print(f"Section: {task.section.name if task.section else 'None'}")
             print(f"Completed: {task.completed}")
 
 
@@ -63,21 +60,19 @@ async def test_vector_store():
         {
             "id": "doc1",
             "text": "StackAdapt is a programmatic advertising platform.",
-            "metadata": {"title": "About StackAdapt"}
+            "metadata": {"title": "About StackAdapt"},
         },
         {
             "id": "doc2",
             "text": (
                 "Vector databases enable semantic search over large text corpora."
             ),
-            "metadata": {"title": "Vector DBs"}
+            "metadata": {"title": "Vector DBs"},
         },
         {
             "id": "doc3",
-            "text": (
-                "Confluence is used for documentation and knowledge sharing."
-            ),
-            "metadata": {"title": "Confluence"}
+            "text": ("Confluence is used for documentation and knowledge sharing."),
+            "metadata": {"title": "Confluence"},
         },
     ]
     store.add_documents("test", docs)
@@ -109,7 +104,7 @@ async def _populate_vector_store():
                 "document_id": chunk_id,
                 "document_source": "prd",
                 "document_title": "PRD: Generative AI V1: Creatives Builder",
-            }
+            },
         }
         store.add_documents("gdrive", [doc])
 

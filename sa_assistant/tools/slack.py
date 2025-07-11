@@ -1,23 +1,27 @@
-from typing import List
 from sqlmodel import select
 from agents import RunContextWrapper, function_tool
 
 from sa_assistant.context import AssistantContext
 from sa_assistant.db import get_session
-from sa_assistant.integrations.slack import SlackAPI, SlackChannel, SlackChat, SlackConversation
+from sa_assistant.integrations.slack import (
+    SlackAPI,
+    SlackChannel,
+    SlackChat,
+    SlackConversation,
+)
 
 
-def fetch_channel(channel_id: str | None = None, channel_name: str | None = None) -> SlackChannel:
+def fetch_channel(
+    channel_id: str | None = None, channel_name: str | None = None
+) -> SlackChannel:
     db_session = get_session()
 
     with db_session as session:
         statement = None
         if channel_id:
-            statement = select(SlackChannel).where(
-                SlackChannel.id == channel_id)
+            statement = select(SlackChannel).where(SlackChannel.id == channel_id)
         elif channel_name:
-            statement = select(SlackChannel).where(
-                SlackChannel.name == channel_name)
+            statement = select(SlackChannel).where(SlackChannel.name == channel_name)
         results = session.exec(statement)
 
         return results.first()
@@ -34,13 +38,13 @@ def fetch_chat(chat_name: str) -> SlackChat:
 
 
 def fetch_conversation(conversation_id: str) -> SlackChannel | SlackChat:
-    if (conversation_id.startswith("#")):
+    if conversation_id.startswith("#"):
         return fetch_channel(conversation_id[1:])
 
     return fetch_chat(conversation_id)
 
 
-def save_conversations(conversations: List[SlackChannel | SlackChat]):
+def save_conversations(conversations: list[SlackChannel | SlackChat]):
     db_session = get_session()
 
     with db_session as session:
@@ -71,7 +75,9 @@ def get_conversation(slack_token: str, conversation_id: str) -> SlackConversatio
 
 
 @function_tool
-def send_message(ctx: RunContextWrapper[AssistantContext], message: str, conversation_id: str = None):
+def send_message(
+    ctx: RunContextWrapper[AssistantContext], message: str, conversation_id: str = None
+):
     """Sends a message to Slack
 
     Args:

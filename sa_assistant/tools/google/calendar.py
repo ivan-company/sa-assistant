@@ -15,16 +15,16 @@ async def get_calendar_event(ctx: RunContextWrapper[AssistantContext], date_str:
     date = datetime.strptime(date_str, "%Y-%m-%d")
     days_ahead = 1
     max_results = 10
-    calendar_id = 'primary'
-    time_min = date.isoformat() + 'Z'
-    time_max = (date + timedelta(days=days_ahead)).isoformat() + 'Z'
+    calendar_id = "primary"
+    time_min = date.isoformat() + "Z"
+    time_max = (date + timedelta(days=days_ahead)).isoformat() + "Z"
     try:
         events = GoogleCalendarAPI().get_events(
             calendar_id,
             time_min=time_min,
             time_max=time_max,
             max_results=max_results,
-            order_by='startTime'
+            order_by="startTime",
         )
     except Exception as e:
         print(e)
@@ -39,7 +39,7 @@ async def create_calendar_event(
     end_datetime: str,
     description: str = "",
     location: str = "",
-    attendees: list[str] = None
+    attendees: list[str] = None,
 ):
     """Create a new event in the calendar.
 
@@ -51,40 +51,36 @@ async def create_calendar_event(
         location: Optional location of the event
         attendees: Optional list of email addresses to invite
     """
-    calendar_id = 'primary'
+    calendar_id = "primary"
 
     # Build the event object
     event = {
-        'summary': summary,
-        'description': description,
-        'location': location,
-        'start': {
-            'dateTime': start_datetime,
-            'timeZone': 'America/Vancouver',  # Pacific Time
+        "summary": summary,
+        "description": description,
+        "location": location,
+        "start": {
+            "dateTime": start_datetime,
+            "timeZone": "America/Vancouver",  # Pacific Time
         },
-        'end': {
-            'dateTime': end_datetime,
-            'timeZone': 'America/Vancouver',  # Pacific Time
+        "end": {
+            "dateTime": end_datetime,
+            "timeZone": "America/Vancouver",  # Pacific Time
         },
     }
 
     # Add attendees if provided
     if attendees:
-        event['attendees'] = [{'email': email} for email in attendees]
+        event["attendees"] = [{"email": email} for email in attendees]
 
     try:
         return GoogleCalendarAPI().create_event(calendar_id, event)
     except Exception as e:
-        return {
-            'status': 'error',
-            'error': str(e)
-        }
+        return {"status": "error", "error": str(e)}
 
 
 @function_tool
 async def delete_calendar_event(
-    ctx: RunContextWrapper[AssistantContext],
-    event_id: str
+    ctx: RunContextWrapper[AssistantContext], event_id: str
 ):
     """Delete an event from the calendar.
 
@@ -92,10 +88,6 @@ async def delete_calendar_event(
         event_id: The ID of the event to delete
     """
     try:
-        GoogleCalendarAPI().delete_event(event_id, 'primary')
+        GoogleCalendarAPI().delete_event(event_id, "primary")
     except Exception as e:
-        return {
-            'status': 'error',
-            'error': str(e),
-            'event_id': event_id
-        }
+        return {"status": "error", "error": str(e), "event_id": event_id}

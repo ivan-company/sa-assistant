@@ -12,9 +12,7 @@ load_dotenv()
 
 
 async def analyze_ticket_content_with_ai(
-    content: str,
-    openai_api_key: str,
-    model: str
+    content: str, openai_api_key: str, model: str
 ) -> Dict[str, Any]:
     """
     Use AI to semantically analyze ticket content for blockers and decisions.
@@ -58,14 +56,17 @@ async def analyze_ticket_content_with_ai(
         response = await client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": (
-                    "You are an expert at analyzing software development tickets to identify blockers and decision points."
-                    " Be precise and only flag items with high confidence."
-                )},
-                {"role": "user", "content": prompt}
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an expert at analyzing software development tickets to identify blockers and decision points."
+                        " Be precise and only flag items with high confidence."
+                    ),
+                },
+                {"role": "user", "content": prompt},
             ],
             temperature=0.1,
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
         )
 
         result = json.loads(response.choices[0].message.content)
@@ -73,15 +74,23 @@ async def analyze_ticket_content_with_ai(
     except Exception as e:
         print(f"Error in AI analysis: {e}")
         return {
-            "blocker": {"detected": False, "confidence": 0, "explanation": "AI analysis failed", "key_phrases": []},
-            "decision": {"detected": False, "confidence": 0, "explanation": "AI analysis failed", "key_phrases": []}
+            "blocker": {
+                "detected": False,
+                "confidence": 0,
+                "explanation": "AI analysis failed",
+                "key_phrases": [],
+            },
+            "decision": {
+                "detected": False,
+                "confidence": 0,
+                "explanation": "AI analysis failed",
+                "key_phrases": [],
+            },
         }
 
 
 @function_tool
-async def good_morning(
-    ctx: RunContextWrapper[AssistantContext]
-) -> Dict[str, Any]:
+async def good_morning(ctx: RunContextWrapper[AssistantContext]) -> Dict[str, Any]:
     """
     Good morning function that analyzes tickets across configured JIRA boards.
     Identifies blockers/decisions needing EM attention.
@@ -91,15 +100,17 @@ async def good_morning(
     Scope: Only analyzes tickets in the current sprint (open sprints).
     """
     # Get boards from configuration
-    boards = ctx.context.jira.boards if ctx.context.jira and ctx.context.jira.boards else [
-        "CRE"]
+    boards = (
+        ctx.context.jira.boards
+        if ctx.context.jira and ctx.context.jira.boards
+        else ["CRE"]
+    )
     print(f"Running good morning analysis for boards: {boards}")
 
     try:
         jira = JIRA(
             server=ctx.context.jira.base_url,
-            basic_auth=(ctx.context.jira.api_email,
-                        ctx.context.jira.api_key),
+            basic_auth=(ctx.context.jira.api_email, ctx.context.jira.api_key),
         )
     except Exception as e:
         print(f"Error connecting to JIRA: {e}")
@@ -111,8 +122,8 @@ async def good_morning(
             "total_tickets_analyzed": 0,
             "potential_blockers": 0,
             "decision_items": 0,
-            "boards_analyzed": boards
-        }
+            "boards_analyzed": boards,
+        },
     }
 
     for board in boards:
@@ -123,15 +134,14 @@ async def good_morning(
         print(f"JQL query: {jql_query}")
 
         try:
-            issues = jira.search_issues(
-                jql_query, expand='comments', maxResults=50)
+            issues = jira.search_issues(jql_query, expand="comments", maxResults=50)
 
             for issue in issues:
                 print(f"Analyzing issue: {issue.key}")
                 results["summary"]["total_tickets_analyzed"] += 1
 
                 # Get full issue details including comments
-                full_issue = jira.issue(issue.key, expand='comments')
+                full_issue = jira.issue(issue.key, expand="comments")
 
                 # Combine all text content for analysis
                 all_text = []
@@ -139,7 +149,7 @@ async def good_morning(
                 all_text.append(full_issue.fields.description or "")
 
                 # Get comments
-                if hasattr(full_issue.fields, 'comment') and full_issue.fields.comment:
+                if hasattr(full_issue.fields, "comment") and full_issue.fields.comment:
                     for comment in full_issue.fields.comment.comments:
                         comment_body = comment.body or ""
                         all_text.append(comment_body)
@@ -147,24 +157,32 @@ async def good_morning(
                 combined_text = " ".join(all_text)
 
                 # Use AI to analyze for blockers and decisions
-                if len(combined_text.strip()) > 50:  # Only analyze if there's substantial content
+                if (
+                    len(combined_text.strip()) > 50
+                ):  # Only analyze if there's substantial content
                     ai_analysis = await analyze_ticket_content_with_ai(
                         combined_text,
                         ctx.context.openai_api_key,
-                        ctx.context.openai_model or "gpt-4o-mini"
+                        ctx.context.openai_model or "gpt-4o-mini",
                     )
 
-                    blocker_detected = ai_analysis.get(
-                        "blocker", {}).get("detected", False)
-                    blocker_confidence = ai_analysis.get(
-                        "blocker", {}).get("confidence", 0)
-                    decision_detected = ai_analysis.get(
-                        "decision", {}).get("detected", False)
-                    decision_confidence = ai_analysis.get(
-                        "decision", {}).get("confidence", 0)
+                    blocker_detected = ai_analysis.get("blocker", {}).get(
+                        "detected", False
+                    )
+                    blocker_confidence = ai_analysis.get("blocker", {}).get(
+                        "confidence", 0
+                    )
+                    decision_detected = ai_analysis.get("decision", {}).get(
+                        "detected", False
+                    )
+                    decision_confidence = ai_analysis.get("decision", {}).get(
+                        "confidence", 0
+                    )
 
                     # Only flag items with high confidence (>70)
-                    if (blocker_detected and blocker_confidence > 70) or (decision_detected and decision_confidence > 70):
+                    if (blocker_detected and blocker_confidence > 70) or (
+                        decision_detected and decision_confidence > 70
+                    ):
                         item_type = []
                         analysis_details = {}
 
@@ -178,25 +196,28 @@ async def good_morning(
                             results["summary"]["decision_items"] += 1
                             analysis_details["decision"] = ai_analysis["decision"]
 
-                        results["blockers_and_decisions"].append({
-                            "key": full_issue.key,
-                            "summary": full_issue.fields.summary,
-                            "status": full_issue.fields.status.name,
-                            "assignee": (
-                                full_issue.fields.assignee.displayName
-                                if full_issue.fields.assignee
-                                else "Unassigned"
-                            ),
-                            "board": board,
-                            "type": item_type,
-                            "ai_analysis": analysis_details,
-                            "priority": (
-                                full_issue.fields.priority.name
-                                if hasattr(full_issue.fields, 'priority') and full_issue.fields.priority
-                                else "Unknown"
-                            ),
-                            "url": f"{ctx.context.jira.base_url}/browse/{full_issue.key}"
-                        })
+                        results["blockers_and_decisions"].append(
+                            {
+                                "key": full_issue.key,
+                                "summary": full_issue.fields.summary,
+                                "status": full_issue.fields.status.name,
+                                "assignee": (
+                                    full_issue.fields.assignee.displayName
+                                    if full_issue.fields.assignee
+                                    else "Unassigned"
+                                ),
+                                "board": board,
+                                "type": item_type,
+                                "ai_analysis": analysis_details,
+                                "priority": (
+                                    full_issue.fields.priority.name
+                                    if hasattr(full_issue.fields, "priority")
+                                    and full_issue.fields.priority
+                                    else "Unknown"
+                                ),
+                                "url": f"{ctx.context.jira.base_url}/browse/{full_issue.key}",
+                            }
+                        )
 
         except Exception as e:
             print(f"Error analyzing board {board}: {e}")

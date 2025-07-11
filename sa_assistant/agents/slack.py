@@ -9,5 +9,5 @@ You are an agent specialized in operating with Slack.
 """,
     tools=[
         send_message,
-    ]
+    ],
 )

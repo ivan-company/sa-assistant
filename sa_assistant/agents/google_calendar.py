@@ -11,7 +11,9 @@ from sa_assistant.tools.google.calendar import (
 from ..context import AssistantContext
 
 
-def calendar_agent_instructions(ctx: RunContextWrapper[AssistantContext], agent: Agent[AssistantContext]):
+def calendar_agent_instructions(
+    ctx: RunContextWrapper[AssistantContext], agent: Agent[AssistantContext]
+):
     timezone = ctx.context.calendar.timezone
     return f"""{RECOMMENDED_PROMPT_PREFIX}
 You are a Google Calendar agent. Your job is to handle all tasks related to Google Calendar. Some relevant information:
@@ -41,5 +43,5 @@ calendar_agent = Agent(
         get_calendar_event,
         create_calendar_event,
         delete_calendar_event,
-    ]
+    ],
 )
